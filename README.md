@@ -1,1 +1,1 @@
-eventusb for tmi
+eventsub for tmi
