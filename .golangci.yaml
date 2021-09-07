@@ -11,3 +11,7 @@ linters:
     - tagliatelle
     - maligned
     - gomnd
+    - scopelint
+    - interfacer
+    - golint
+    - gomoddirectives
