@@ -9,5 +9,6 @@ func ToDoc(v interface{}) (doc *bson.D, err error) {
 	}
 
 	err = bson.Unmarshal(data, &doc)
+
 	return
 }

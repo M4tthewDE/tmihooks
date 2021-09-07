@@ -30,7 +30,10 @@ func (server *Server) Run() {
 
 	server.registerRoutes()
 
-	http.ListenAndServe(":"+server.Port, server.Router)
+	err := http.ListenAndServe(":"+server.Port, server.Router)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (server *Server) registerRoutes() {

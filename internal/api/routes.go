@@ -23,27 +23,30 @@ func NewRouteHandler(config *config.Config) *RouteHandler {
 	}
 }
 
-// register new webhook
+// register new webhook.
 func (rh *RouteHandler) Register() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var webhook webhook.Webhook
-		json.NewDecoder(r.Body).Decode(&webhook)
+
+		err := json.NewDecoder(r.Body).Decode(&webhook)
+		if err != nil {
+			panic(err)
+		}
+
 		webhook.Status = "unconfirmed"
 
 		rh.dbHandler.Insert(webhook)
 	}
 }
 
-// get all webhooks
+// get all webhooks.
 func (rh *RouteHandler) Get() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 	}
 }
 
-// get all webhooks
+// get all webhooks.
 func (rh *RouteHandler) Delete() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 	}
 }

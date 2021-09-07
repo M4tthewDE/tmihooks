@@ -24,6 +24,7 @@ func (dbHandler *DatabaseHandler) Insert(webhook webhook.Webhook) {
 		Username: dbHandler.Config.Database.Password,
 		Password: dbHandler.Config.Database.Password,
 	}
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(credential))
 	if err != nil {
 		panic(err)
@@ -38,9 +39,11 @@ func (dbHandler *DatabaseHandler) Insert(webhook webhook.Webhook) {
 	if err != nil {
 		panic(err)
 	}
+
 	res, err := collection.InsertOne(ctx, doc)
 	if err != nil {
 		panic(err)
 	}
+
 	log.Println(res)
 }
