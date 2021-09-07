@@ -8,6 +8,6 @@ import (
 func main() {
 	config := config.GetConfig()
 
-	server := api.NewServer(config, "1500")
+	server := api.NewServer(config)
 	server.Run()
 }

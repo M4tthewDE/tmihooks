@@ -14,9 +14,9 @@ type Server struct {
 	RouteHandler *RouteHandler
 }
 
-func NewServer(config *config.Config, port string) *Server {
+func NewServer(config *config.Config) *Server {
 	server := Server{
-		Port:         port,
+		Port:         config.Server.Port,
 		Router:       chi.NewRouter(),
 		RouteHandler: NewRouteHandler(config),
 	}

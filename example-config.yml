@@ -1,3 +1,5 @@
 database:
   user: "test"
   password: "test"
+server:
+  port: "7070"
