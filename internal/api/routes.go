@@ -17,7 +17,7 @@ func (rh *RouteHandler) Register() func(w http.ResponseWriter, r *http.Request) 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var webhook webhook.Webhook
 		json.NewDecoder(r.Body).Decode(&webhook)
-		webhook.ID = uuid.New()
+		webhook.UUID = uuid.New()
 		webhook.Status = "unconfirmed"
 
 		db.Insert(webhook)
