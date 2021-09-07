@@ -24,7 +24,7 @@ func Insert(webhook webhook.Webhook) {
 		panic(err)
 	}
 
-	collection := client.Database("test").Collection("webhooks")
+	collection := client.Database("dev").Collection("webhooks")
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
