@@ -4,11 +4,23 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/db"
 	"github.com/m4tthewde/tmihooks/internal/webhook"
 )
 
 type RouteHandler struct {
+	dbHandler *db.DatabaseHandler
+}
+
+func NewRouteHandler(config *config.Config) *RouteHandler {
+	dbHandler := &db.DatabaseHandler{
+		Config: config,
+	}
+
+	return &RouteHandler{
+		dbHandler: dbHandler,
+	}
 }
 
 // register new webhook
@@ -18,7 +30,7 @@ func (rh *RouteHandler) Register() func(w http.ResponseWriter, r *http.Request) 
 		json.NewDecoder(r.Body).Decode(&webhook)
 		webhook.Status = "unconfirmed"
 
-		db.Insert(webhook)
+		rh.dbHandler.Insert(webhook)
 	}
 }
 

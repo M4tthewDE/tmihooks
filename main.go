@@ -1,8 +1,13 @@
 package main
 
-import "github.com/m4tthewde/tmihooks/internal/api"
+import (
+	"github.com/m4tthewde/tmihooks/internal/api"
+	"github.com/m4tthewde/tmihooks/internal/config"
+)
 
 func main() {
-	server := api.NewServer("1500")
+	config := config.GetConfig()
+
+	server := api.NewServer(config, "1500")
 	server.Run()
 }

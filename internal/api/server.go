@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/m4tthewde/tmihooks/internal/config"
 )
 
 type Server struct {
@@ -13,11 +14,11 @@ type Server struct {
 	RouteHandler *RouteHandler
 }
 
-func NewServer(port string) *Server {
+func NewServer(config *config.Config, port string) *Server {
 	server := Server{
 		Port:         port,
 		Router:       chi.NewRouter(),
-		RouteHandler: &RouteHandler{},
+		RouteHandler: NewRouteHandler(config),
 	}
 
 	return &server
