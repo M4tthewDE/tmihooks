@@ -2,9 +2,11 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/db"
@@ -67,10 +69,22 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 		panic(err)
 	}
 
-	resp, err := http.Post(webhook.URI, "application/json", bytes.NewBuffer(confirmationJSON))
+	client := &http.Client{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", webhook.URI, bytes.NewBuffer(confirmationJSON))
 	if err != nil {
 		log.Println(err)
 	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		rh.dbHandler.Delete(webhook)

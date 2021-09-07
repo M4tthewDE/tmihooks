@@ -17,12 +17,14 @@ func ToDoc(v interface{}) (doc *bson.D, err error) {
 	return
 }
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 func RandomString(length int) string {
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
 	b := make([]rune, length)
+
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
+
 	return string(b)
 }

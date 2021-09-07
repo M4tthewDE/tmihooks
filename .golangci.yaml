@@ -15,3 +15,4 @@ linters:
     - interfacer
     - golint
     - gomoddirectives
+    - gosec
