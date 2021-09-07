@@ -1,0 +1,6 @@
+build:
+	go build -o target/tmihooks .
+lint:
+	golangci-lint run --enable-all --disable testpackage --disable exhaustivestruct --disable tagliatelle --disable maligned --disable gomnd . internal/...
+test:
+	go test ./...
