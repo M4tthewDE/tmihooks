@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/m4tthewde/tmihooks/internal/config"
+	"github.com/m4tthewde/tmihooks/internal/util"
 	"github.com/m4tthewde/tmihooks/internal/webhook"
-	"github.com/m4tthewde/tmihooks/util"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
