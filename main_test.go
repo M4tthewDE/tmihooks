@@ -65,6 +65,11 @@ func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
 	log.Println(string(s))
 
 	assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
+
+	_, err = w.Write([]byte(confirmation.Challenge))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (ts *TestServer) registerWebhook(config *config.Config) {

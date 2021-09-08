@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -86,7 +87,18 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	if resp.StatusCode != http.StatusOK || string(body) != confirmation.Challenge {
+		log.Println("webhook wasn't confirmed properly!")
 		rh.dbHandler.Delete(webhook)
+	} else {
+		n := rh.dbHandler.SetConfirmed(confirmation.ID)
+		if n != 1 {
+			panic("not exaclty one webhook was confirmed")
+		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/structs"
 	"github.com/m4tthewde/tmihooks/internal/util"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -78,4 +79,42 @@ func (dbHandler *DatabaseHandler) Delete(webhook *structs.Webhook) int64 {
 	}
 
 	return res.DeletedCount
+}
+
+func (dbHandler *DatabaseHandler) SetConfirmed(id string) int64 {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	credential := options.Credential{
+		Username: dbHandler.Config.Database.Password,
+		Password: dbHandler.Config.Database.Password,
+	}
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(credential))
+	if err != nil {
+		panic(err)
+	}
+
+	collection := client.Database("dev").Collection("webhooks")
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	hexID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := collection.UpdateOne(
+		ctx,
+		bson.M{"_id": hexID},
+		bson.D{
+			{Key: "$set", Value: bson.M{"status": "confirmed"}},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	return resp.ModifiedCount
 }
