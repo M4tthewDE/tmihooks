@@ -16,6 +16,8 @@ import (
 )
 
 func TestApplication(t *testing.T) {
+	t.Parallel()
+
 	config := config.GetConfig("test_config.yml")
 
 	testServer := TestServer{
@@ -40,9 +42,12 @@ type TestServer struct {
 }
 
 func (ts *TestServer) startTestClient() {
-
 	http.HandleFunc("/register", ts.register)
-	http.ListenAndServe(":7070", nil)
+
+	err := http.ListenAndServe(":7070", nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
@@ -54,7 +59,9 @@ func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
 	}
 
 	log.Println("received confirmation")
+
 	s, _ := json.MarshalIndent(confirmation, "", " ")
+
 	log.Println(string(s))
 
 	assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
@@ -67,6 +74,7 @@ func (ts *TestServer) registerWebhook(config *config.Config) {
 		Nonce:    "penis123",
 	}
 	s, _ := json.MarshalIndent(webhook, "", " ")
+
 	log.Println("registering webhook...")
 	log.Println(string(s))
 
@@ -82,7 +90,9 @@ func (ts *TestServer) registerWebhook(config *config.Config) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "http://localhost:"+config.Server.Port+"/register", bytes.NewBuffer(webhookJSON))
+	address := "http://localhost:" + config.Server.Port + "/register"
+
+	req, err := http.NewRequestWithContext(ctx, "POST", address, bytes.NewBuffer(webhookJSON))
 	if err != nil {
 		log.Println(err)
 	}
