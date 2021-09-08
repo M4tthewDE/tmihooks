@@ -7,8 +7,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func GetConfig() *Config {
-	f, err := os.Open("config.yml")
+func GetConfig(file string) *Config {
+	f, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
 	}
