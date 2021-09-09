@@ -107,11 +107,17 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 		log.Println(err)
 	}
 
+	if resp == nil {
+		log.Println("webhook wasn't confirmed properly!")
+		rh.dbHandler.Delete(webhook)
+		return
+	}
+
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	if resp.StatusCode != http.StatusOK || string(body) != confirmation.Challenge {
