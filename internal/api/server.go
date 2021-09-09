@@ -38,6 +38,6 @@ func (server *Server) Run() {
 
 func (server *Server) registerRoutes() {
 	server.Router.Post("/register", server.RouteHandler.Register())
-	server.Router.Get("/get", server.RouteHandler.Register())
-	server.Router.Delete("/delete", server.RouteHandler.Register())
+	server.Router.Get("/get", server.RouteHandler.Get())
+	server.Router.Delete("/delete", server.RouteHandler.Delete())
 }

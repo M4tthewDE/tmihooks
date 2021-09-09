@@ -30,6 +30,7 @@ func NewRouteHandler(config *config.Config) *RouteHandler {
 }
 
 // register new webhook.
+// /register
 func (rh *RouteHandler) Register() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var webhook structs.Webhook
@@ -52,13 +53,34 @@ func (rh *RouteHandler) Register() func(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// get all webhooks.
+// get webhook by id.
+// /get?id=asdf1234
 func (rh *RouteHandler) Get() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		id, ok := r.URL.Query()["id"]
+		if !ok {
+			http.Error(w, "Bad id.", http.StatusBadRequest)
+		}
+
+		webhook, err := rh.dbHandler.GetWebhook(id[0])
+		if err != nil {
+			http.Error(w, "Webhook not found.", http.StatusBadRequest)
+		}
+
+		jsonWebhook, err := json.Marshal(webhook)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = w.Write(jsonWebhook)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-// get all webhooks.
+// delete webhook by id.
+// /delete
 func (rh *RouteHandler) Delete() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 	}

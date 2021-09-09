@@ -118,3 +118,48 @@ func (dbHandler *DatabaseHandler) SetConfirmed(id string) int64 {
 
 	return resp.ModifiedCount
 }
+
+func (dbHandler *DatabaseHandler) GetWebhook(id string) (*structs.Webhook, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	credential := options.Credential{
+		Username: dbHandler.Config.Database.Password,
+		Password: dbHandler.Config.Database.Password,
+	}
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(credential))
+	if err != nil {
+		return nil, err
+	}
+
+	collection := client.Database("dev").Collection("webhooks")
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	hexID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	cur, err := collection.Find(
+		ctx,
+		bson.M{"_id": hexID},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	defer cur.Close(context.Background())
+
+	var webhook structs.Webhook
+	for cur.Next(context.Background()) {
+		err = cur.Decode(&webhook)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &webhook, nil
+}
