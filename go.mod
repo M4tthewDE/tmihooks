@@ -4,6 +4,8 @@ go 1.17
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gempir/go-twitch-irc v1.1.0 // indirect
+	github.com/gempir/go-twitch-irc/v2 v2.6.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.4 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
