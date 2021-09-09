@@ -83,6 +83,24 @@ func (rh *RouteHandler) Get() func(w http.ResponseWriter, r *http.Request) {
 // /delete
 func (rh *RouteHandler) Delete() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		id, ok := r.URL.Query()["id"]
+		if !ok {
+			http.Error(w, "Bad id.", http.StatusBadRequest)
+		}
+
+		n, err := rh.dbHandler.DeleteByID(id[0])
+		if err != nil {
+			http.Error(w, "Webhook not found.", http.StatusBadRequest)
+			return
+		}
+		if n == 0 {
+			http.Error(w, "Webhook not found.", http.StatusBadRequest)
+		}
+
+		_, err = w.Write([]byte(id[0]))
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
