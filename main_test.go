@@ -12,6 +12,7 @@ import (
 	"github.com/m4tthewde/tmihooks/internal/api"
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/structs"
+	"github.com/m4tthewde/tmihooks/internal/tmi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,9 +25,13 @@ func TestApplication(t *testing.T) {
 		t: t,
 	}
 
+	reader := tmi.NewReader()
+
+	go reader.Read()
+
 	go testServer.startTestClient()
 
-	server := api.NewServer(config)
+	server := api.NewServer(config, reader)
 	go server.Run()
 
 	testServer.registerWebhook(config)
@@ -74,7 +79,7 @@ func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
 
 func (ts *TestServer) registerWebhook(config *config.Config) {
 	webhook := structs.Webhook{
-		Channels: []string{"matthewde", "gopherobot"},
+		Channels: []string{"buddha", "destiny"},
 		URI:      "http://localhost:7070/register",
 		Nonce:    "penis123",
 	}

@@ -12,20 +12,34 @@ import (
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/db"
 	"github.com/m4tthewde/tmihooks/internal/structs"
+	"github.com/m4tthewde/tmihooks/internal/tmi"
 	"github.com/m4tthewde/tmihooks/internal/util"
 )
 
 type RouteHandler struct {
 	dbHandler *db.DatabaseHandler
+	reader    *tmi.Reader
 }
 
-func NewRouteHandler(config *config.Config) *RouteHandler {
+func NewRouteHandler(config *config.Config, reader *tmi.Reader) *RouteHandler {
 	dbHandler := &db.DatabaseHandler{
 		Config: config,
 	}
 
+	webhooks, err := dbHandler.GetAllWebhooks()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, webhook := range webhooks {
+		for _, channel := range webhook.Channels {
+			reader.ChanChan <- channel
+		}
+	}
+
 	return &RouteHandler{
 		dbHandler: dbHandler,
+		reader:    reader,
 	}
 }
 
@@ -145,6 +159,11 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 		n := rh.dbHandler.SetConfirmed(confirmation.ID)
 		if n != 1 {
 			panic("not exaclty one webhook was confirmed")
+		} else {
+			// webhook was confirmed successfully.
+			for _, channel := range webhook.Channels {
+				rh.reader.ChanChan <- channel
+			}
 		}
 	}
 }
