@@ -26,6 +26,17 @@ func NewRouteHandler(config *config.Config, reader *tmi.Reader) *RouteHandler {
 		Config: config,
 	}
 
+	webhooks, err := dbHandler.GetAllWebhooks()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, webhook := range webhooks {
+		for _, channel := range webhook.Channels {
+			reader.ChanChan <- channel
+		}
+	}
+
 	return &RouteHandler{
 		dbHandler: dbHandler,
 		reader:    reader,

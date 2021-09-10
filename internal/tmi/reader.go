@@ -4,7 +4,6 @@ import "github.com/gempir/go-twitch-irc/v2"
 
 type Reader struct {
 	client         *twitch.Client
-	Channels       []string
 	ChanChan       chan string
 	messageHandler MessageHandler
 }
@@ -12,7 +11,6 @@ type Reader struct {
 func NewReader() *Reader {
 	r := Reader{
 		client:         twitch.NewAnonymousClient(),
-		Channels:       make([]string, 0),
 		ChanChan:       make(chan string),
 		messageHandler: MessageHandler{},
 	}
