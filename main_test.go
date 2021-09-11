@@ -9,32 +9,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m4tthewde/tmihooks/internal/api"
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/structs"
-	"github.com/m4tthewde/tmihooks/internal/tmi"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApplication(t *testing.T) {
 	t.Parallel()
 
-	config := config.GetConfig("test_config.yml")
-
 	testServer := TestServer{
 		t: t,
 	}
 
-	reader := tmi.NewReader()
-
-	go reader.Read()
-
 	go testServer.startTestClient()
 
-	server := api.NewServer(config, reader)
-	go server.Run()
-
-	testServer.registerWebhook(config)
+	testServer.registerWebhook()
 
 	for {
 		select {}
@@ -77,7 +66,8 @@ func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (ts *TestServer) registerWebhook(config *config.Config) {
+func (ts *TestServer) registerWebhook() {
+	config := config.GetConfig("test_config.yml")
 	webhook := structs.Webhook{
 		Channels: []string{"buddha", "destiny"},
 		URI:      "http://localhost:7070/register",
