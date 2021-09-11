@@ -45,10 +45,6 @@ func (mh *MessageHandler) handlePrivMsg(msg twitch.PrivateMessage) {
 func (mh *MessageHandler) WebhookListener() {
 	for webhook := range mh.WebhookChan {
 		mh.webhooks = append(mh.webhooks, webhook)
-
-		for _, wh := range mh.webhooks {
-			log.Println(wh.Channels)
-		}
 	}
 }
 
