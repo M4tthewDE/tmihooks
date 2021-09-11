@@ -70,11 +70,12 @@ func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, uri string) 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		//log.Println(err)
+		log.Println(err)
 	}
 
 	if resp == nil {
 		// TODO do something in this case?
+		log.Println("no response")
 		return
 	}
 
@@ -82,6 +83,7 @@ func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, uri string) 
 
 	if resp.StatusCode != http.StatusOK {
 		// TODO their problem I guess
+		log.Println(resp.StatusCode)
 	}
 }
 
