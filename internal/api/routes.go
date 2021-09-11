@@ -32,6 +32,7 @@ func NewRouteHandler(config *config.Config, reader *tmi.Reader) *RouteHandler {
 	}
 
 	for _, webhook := range webhooks {
+		reader.MessageHandler.WebhookChan <- *webhook
 		for _, channel := range webhook.Channels {
 			reader.ChanChan <- channel
 		}
@@ -129,7 +130,7 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", webhook.URI, bytes.NewBuffer(confirmationJSON))
+	req, err := http.NewRequestWithContext(ctx, "POST", webhook.RegisterURI, bytes.NewBuffer(confirmationJSON))
 	if err != nil {
 		log.Println(err)
 	}
@@ -161,6 +162,7 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 			panic("not exaclty one webhook was confirmed")
 		} else {
 			// webhook was confirmed successfully.
+			rh.reader.MessageHandler.WebhookChan <- *webhook
 			for _, channel := range webhook.Channels {
 				rh.reader.ChanChan <- channel
 			}

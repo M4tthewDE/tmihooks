@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gempir/go-twitch-irc/v2"
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/structs"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,7 @@ type TestServer struct {
 
 func (ts *TestServer) startTestClient() {
 	http.HandleFunc("/register", ts.register)
+	http.HandleFunc("/chat", ts.chat)
 
 	err := http.ListenAndServe(":7070", nil)
 	if err != nil {
@@ -66,12 +68,24 @@ func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
+	var msg twitch.PrivateMessage
+
+	err := json.NewDecoder(req.Body).Decode(&msg)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Println(msg.Channel, msg.Message)
+}
+
 func (ts *TestServer) registerWebhook() {
 	config := config.GetConfig("test_config.yml")
 	webhook := structs.Webhook{
-		Channels: []string{"buddha", "destiny"},
-		URI:      "http://localhost:7070/register",
-		Nonce:    "penis123",
+		Channels:    []string{"tmiloadtesting2", "twitchmedia_qs_10", "nmplol", "gtawiseguy", "quin69"},
+		URI:         "http://localhost:7070/chat",
+		RegisterURI: "http://localhost:7070/register",
+		Nonce:       "penis123",
 	}
 	s, _ := json.MarshalIndent(webhook, "", " ")
 

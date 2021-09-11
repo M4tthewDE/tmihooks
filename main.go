@@ -9,7 +9,7 @@ import (
 func main() {
 	config := config.GetConfig("config.yml")
 
-	reader := tmi.NewReader()
+	reader := tmi.NewReader(config)
 
 	go reader.Read()
 

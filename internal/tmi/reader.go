@@ -1,21 +1,26 @@
 package tmi
 
-import "github.com/gempir/go-twitch-irc/v2"
+import (
+	"github.com/gempir/go-twitch-irc/v2"
+	"github.com/m4tthewde/tmihooks/internal/config"
+)
 
 type Reader struct {
 	client         *twitch.Client
 	ChanChan       chan string
-	messageHandler MessageHandler
+	MessageHandler MessageHandler
 }
 
-func NewReader() *Reader {
+func NewReader(config *config.Config) *Reader {
 	r := Reader{
 		client:         twitch.NewAnonymousClient(),
 		ChanChan:       make(chan string),
-		messageHandler: MessageHandler{},
+		MessageHandler: *NewMessageHandler(config),
 	}
 
-	r.client.OnPrivateMessage(r.messageHandler.handlePrivMsg)
+	r.client.OnPrivateMessage(r.MessageHandler.handlePrivMsg)
+
+	go r.MessageHandler.WebhookListener()
 
 	return &r
 }
