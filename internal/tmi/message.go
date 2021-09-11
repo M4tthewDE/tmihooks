@@ -12,6 +12,8 @@ type MessageHandler struct {
 }
 
 func (mh *MessageHandler) handlePrivMsg(msg twitch.PrivateMessage) {
+	// this could have terrible performance, but it works for now
+	// if performance becomes critical, webhooks can be kept in memory
 	webhooks, err := mh.dbHandler.GetWebhooksByChannel(msg.Channel)
 	if err != nil {
 		log.Panic(err)
