@@ -1,7 +1,12 @@
 package tmi
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"log"
+	"net/http"
+	"time"
 
 	"github.com/gempir/go-twitch-irc/v2"
 	"github.com/m4tthewde/tmihooks/internal/db"
@@ -20,6 +25,41 @@ func (mh *MessageHandler) handlePrivMsg(msg twitch.PrivateMessage) {
 	}
 	for _, webhook := range webhooks {
 		// send msg to endpoint
-		log.Println(msg.Channel, webhook)
+		mh.sendToEndpoint(msg, webhook.URI)
+	}
+}
+
+func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, URI string) {
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	client := &http.Client{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", URI, bytes.NewBuffer(msgJSON))
+	if err != nil {
+		log.Println(err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if resp == nil {
+		log.Println("message wasn't received properly")
+		// TODO do something in this case?
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Println("message wasn't received properly!")
+		// TODO their problem I guess
 	}
 }
