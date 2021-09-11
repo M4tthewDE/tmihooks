@@ -1,6 +1,10 @@
 package tmi
 
-import "github.com/gempir/go-twitch-irc/v2"
+import (
+	"github.com/gempir/go-twitch-irc/v2"
+	"github.com/m4tthewde/tmihooks/internal/config"
+	"github.com/m4tthewde/tmihooks/internal/db"
+)
 
 type Reader struct {
 	client         *twitch.Client
@@ -8,11 +12,15 @@ type Reader struct {
 	messageHandler MessageHandler
 }
 
-func NewReader() *Reader {
+func NewReader(config *config.Config) *Reader {
 	r := Reader{
-		client:         twitch.NewAnonymousClient(),
-		ChanChan:       make(chan string),
-		messageHandler: MessageHandler{},
+		client:   twitch.NewAnonymousClient(),
+		ChanChan: make(chan string),
+		messageHandler: MessageHandler{
+			dbHandler: &db.DatabaseHandler{
+				Config: config,
+			},
+		},
 	}
 
 	r.client.OnPrivateMessage(r.messageHandler.handlePrivMsg)

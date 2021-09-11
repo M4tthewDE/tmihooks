@@ -69,7 +69,7 @@ func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
 func (ts *TestServer) registerWebhook() {
 	config := config.GetConfig("test_config.yml")
 	webhook := structs.Webhook{
-		Channels: []string{"buddha", "destiny"},
+		Channels: []string{"39daph"},
 		URI:      "http://localhost:7070/register",
 		Nonce:    "penis123",
 	}
