@@ -77,7 +77,6 @@ func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
 	}
 
 	log.Println(msg.Channel, msg.Message)
-
 }
 
 func (ts *TestServer) registerWebhook() {

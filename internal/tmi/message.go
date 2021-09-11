@@ -29,7 +29,7 @@ func (mh *MessageHandler) handlePrivMsg(msg twitch.PrivateMessage) {
 	}
 }
 
-func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, URI string) {
+func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, uri string) {
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
@@ -40,7 +40,7 @@ func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, URI string) 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", URI, bytes.NewBuffer(msgJSON))
+	req, err := http.NewRequestWithContext(ctx, "POST", uri, bytes.NewBuffer(msgJSON))
 	if err != nil {
 		log.Println(err)
 	}
