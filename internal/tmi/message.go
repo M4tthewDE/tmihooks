@@ -9,23 +9,46 @@ import (
 	"time"
 
 	"github.com/gempir/go-twitch-irc/v2"
+	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/db"
+	"github.com/m4tthewde/tmihooks/internal/structs"
 )
 
 type MessageHandler struct {
-	dbHandler *db.DatabaseHandler
+	dbHandler   *db.DatabaseHandler
+	webhooks    []structs.Webhook
+	WebhookChan chan structs.Webhook
+}
+
+func NewMessageHandler(config *config.Config) *MessageHandler {
+	mh := MessageHandler{
+		dbHandler: &db.DatabaseHandler{
+			Config: config,
+		},
+		webhooks:    make([]structs.Webhook, 0, 10),
+		WebhookChan: make(chan structs.Webhook),
+	}
+
+	return &mh
 }
 
 func (mh *MessageHandler) handlePrivMsg(msg twitch.PrivateMessage) {
-	// this could have terrible performance, but it works for now
-	// if performance becomes critical, webhooks can be kept in memory
-	webhooks, err := mh.dbHandler.GetWebhooksByChannel(msg.Channel)
-	if err != nil {
-		log.Panic(err)
-	}
+	// check in slice for webhooks with channel
+	// if that is too slow too, a map could be used for better performance
+	webhooks := mh.GetWebhooksWithChannel(msg.Channel)
+
 	for _, webhook := range webhooks {
-		// send msg to endpoint
 		mh.sendToEndpoint(msg, webhook.URI)
+	}
+}
+
+func (mh *MessageHandler) WebhookListener() {
+	for webhook := range mh.WebhookChan {
+		mh.webhooks = append(mh.webhooks, webhook)
+
+		for _, wh := range mh.webhooks {
+			log.Println(wh.Channels)
+		}
 	}
 }
 
@@ -47,11 +70,10 @@ func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, uri string) 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 	}
 
 	if resp == nil {
-		log.Println("message wasn't received properly")
 		// TODO do something in this case?
 		return
 	}
@@ -59,7 +81,19 @@ func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, uri string) 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Println("message wasn't received properly!")
 		// TODO their problem I guess
 	}
+}
+
+func (mh *MessageHandler) GetWebhooksWithChannel(channel string) []structs.Webhook {
+	result := make([]structs.Webhook, 0)
+
+	for _, webhook := range mh.webhooks {
+		for _, c := range webhook.Channels {
+			if c == channel {
+				result = append(result, webhook)
+			}
+		}
+	}
+	return result
 }
