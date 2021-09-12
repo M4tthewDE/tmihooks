@@ -237,3 +237,33 @@ func (dbHandler *DatabaseHandler) GetAllWebhooks() ([]*structs.Webhook, error) {
 
 	return webhooks, nil
 }
+
+func (dbHandler *DatabaseHandler) Clear() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	credential := options.Credential{
+		Username: dbHandler.Config.Database.Password,
+		Password: dbHandler.Config.Database.Password,
+	}
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(credential))
+	if err != nil {
+		return err
+	}
+
+	collection := client.Database("dev").Collection("webhooks")
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = collection.DeleteMany(
+		ctx,
+		bson.D{},
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
