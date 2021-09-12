@@ -32,7 +32,7 @@ func NewRouteHandler(config *config.Config, reader *tmi.Reader) *RouteHandler {
 	}
 
 	for _, webhook := range webhooks {
-		reader.MessageHandler.WebhookChan <- *webhook
+		db.AddWebhook(webhook)
 		for _, channel := range webhook.Channels {
 			reader.ChanChan <- channel
 		}
@@ -112,6 +112,12 @@ func (rh *RouteHandler) Delete() func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Webhook not found.", http.StatusBadRequest)
 		}
 
+		webhook, err := rh.dbHandler.GetWebhook(id[0])
+		if err != nil {
+			panic(err)
+		}
+		db.DeleteWebhook(webhook)
+
 		_, err = w.Write([]byte(id[0]))
 		if err != nil {
 			panic(err)
@@ -162,7 +168,7 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 			panic("not exaclty one webhook was confirmed")
 		} else {
 			// webhook was confirmed successfully.
-			rh.reader.MessageHandler.WebhookChan <- *webhook
+			db.AddWebhook(webhook)
 			for _, channel := range webhook.Channels {
 				rh.reader.ChanChan <- channel
 			}

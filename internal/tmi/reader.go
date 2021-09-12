@@ -20,8 +20,6 @@ func NewReader(config *config.Config) *Reader {
 
 	r.client.OnPrivateMessage(r.MessageHandler.handlePrivMsg)
 
-	go r.MessageHandler.WebhookListener()
-
 	return &r
 }
 
