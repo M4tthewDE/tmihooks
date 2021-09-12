@@ -19,3 +19,8 @@ services:
       ME_CONFIG_MONGODB_ADMINUSERNAME: test
       ME_CONFIG_MONGODB_ADMINPASSWORD: test
       ME_CONFIG_MONGODB_URL: mongodb://test:test@mongo:27017/
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
