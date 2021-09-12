@@ -17,6 +17,18 @@ func AddWebhook(webhook *structs.Webhook) {
 	}
 }
 
+func DeleteWebhook(webhook *structs.Webhook) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	for _, channel := range webhook.Channels {
+		rdb.LRem(channel, 0, webhook.URI)
+	}
+}
+
 func GetURIs(channel string) ([]string, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",

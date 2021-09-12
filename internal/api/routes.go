@@ -112,6 +112,12 @@ func (rh *RouteHandler) Delete() func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Webhook not found.", http.StatusBadRequest)
 		}
 
+		webhook, err := rh.dbHandler.GetWebhook(id[0])
+		if err != nil {
+			panic(err)
+		}
+		db.DeleteWebhook(webhook)
+
 		_, err = w.Write([]byte(id[0]))
 		if err != nil {
 			panic(err)
