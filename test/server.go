@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"testing"
 	"time"
 
@@ -16,15 +18,20 @@ import (
 )
 
 type TestServer struct {
-	t       *testing.T
-	webhook *structs.Webhook
+	t        *testing.T
+	server   *http.Server
+	webhook  *structs.Webhook
+	stopChan chan os.Signal
 }
 
 func NewTestServer(t *testing.T) *TestServer {
 	ts := TestServer{
-		t:       t,
-		webhook: nil,
+		t:        t,
+		webhook:  nil,
+		server:   &http.Server{Addr: ":7070"},
+		stopChan: make(chan os.Signal, 1),
 	}
+	signal.Notify(ts.stopChan, os.Interrupt)
 
 	return &ts
 }
@@ -33,8 +40,19 @@ func (ts *TestServer) StartTestClient() {
 	http.HandleFunc("/register", ts.Register)
 	http.HandleFunc("/chat", ts.chat)
 
-	err := http.ListenAndServe(":7070", nil)
-	if err != nil {
+	go func() {
+		err := ts.server.ListenAndServe()
+		if err != nil {
+			log.Println("server closed")
+		}
+	}()
+
+	<-ts.stopChan
+	log.Println("stopping server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := ts.server.Shutdown(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -69,13 +87,21 @@ func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	log.Println(msg.Channel, msg.Message)
+	assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
+	log.Println("received message, attempting graceful shutdown")
+
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		panic(err)
+	}
+
+	p.Signal(os.Interrupt)
 }
 
 func (ts *TestServer) RegisterWebhook() {
-	config := config.GetConfig("test_config.yml")
+	config := config.GetConfig("../test_config.yml")
 	webhook := structs.Webhook{
-		Channels:    []string{"gtawiseguy"},
+		Channels:    []string{"tmiloadtesting2"},
 		URI:         "http://localhost:7070/chat",
 		RegisterURI: "http://localhost:7070/register",
 		Nonce:       "penis123",
