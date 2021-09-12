@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestServer struct {
+type Server struct {
 	t        *testing.T
 	config   *config.Config
 	server   *http.Server
@@ -23,10 +23,10 @@ type TestServer struct {
 	StopChan chan int
 }
 
-func NewTestServer(t *testing.T) *TestServer {
+func NewTestServer(t *testing.T) *Server {
 	config := config.GetConfig("../test_config.yml")
 
-	ts := TestServer{
+	ts := Server{
 		t:        t,
 		config:   config,
 		webhook:  nil,
@@ -37,7 +37,7 @@ func NewTestServer(t *testing.T) *TestServer {
 	return &ts
 }
 
-func (ts *TestServer) StartTestClient() {
+func (ts *Server) StartTestClient() {
 	http.HandleFunc("/register", ts.Register)
 	http.HandleFunc("/chat", ts.chat)
 
@@ -47,7 +47,7 @@ func (ts *TestServer) StartTestClient() {
 	}
 }
 
-func (ts *TestServer) Register(w http.ResponseWriter, req *http.Request) {
+func (ts *Server) Register(w http.ResponseWriter, req *http.Request) {
 	var confirmation structs.Confirmation
 
 	err := json.NewDecoder(req.Body).Decode(&confirmation)
@@ -69,7 +69,7 @@ func (ts *TestServer) Register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
+func (ts *Server) chat(w http.ResponseWriter, req *http.Request) {
 	var msg twitch.PrivateMessage
 
 	err := json.NewDecoder(req.Body).Decode(&msg)
@@ -87,7 +87,7 @@ func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
 	ts.StopChan <- 0
 }
 
-func (ts *TestServer) RegisterWebhook() {
+func (ts *Server) RegisterWebhook() {
 	webhook := structs.Webhook{
 		Channels:    []string{"tmiloadtesting2"},
 		URI:         "http://localhost:7070/chat",
@@ -128,7 +128,7 @@ func (ts *TestServer) RegisterWebhook() {
 	assert.Equal(ts.t, http.StatusOK, resp.StatusCode)
 }
 
-func (ts *TestServer) ShutdownMainServer() {
+func (ts *Server) ShutdownMainServer() {
 	client := &http.Client{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

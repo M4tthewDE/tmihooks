@@ -20,7 +20,10 @@ func RunMainApplication() {
 		Config: config,
 	}
 
-	dbHandler.Clear()
+	err := dbHandler.Clear()
+	if err != nil {
+		panic(err)
+	}
 
 	reader := tmi.NewReader(config)
 
