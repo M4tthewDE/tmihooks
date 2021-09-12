@@ -1,4 +1,4 @@
-package main_test
+package test
 
 import (
 	"bytes"
@@ -15,38 +15,39 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApplication(t *testing.T) {
-	t.Parallel()
-
-	testServer := TestServer{
-		t: t,
-	}
-
-	go testServer.startTestClient()
-
-	testServer.registerWebhook()
-
-	for {
-		select {}
-	}
+type Server struct {
+	t        *testing.T
+	config   *config.Config
+	server   *http.Server
+	webhook  *structs.Webhook
+	StopChan chan int
 }
 
-type TestServer struct {
-	t       *testing.T
-	webhook *structs.Webhook
+func NewTestServer(t *testing.T) *Server {
+	config := config.GetConfig("../test_config.yml")
+
+	ts := Server{
+		t:        t,
+		config:   config,
+		webhook:  nil,
+		server:   &http.Server{Addr: ":7070"},
+		StopChan: make(chan int, 1),
+	}
+
+	return &ts
 }
 
-func (ts *TestServer) startTestClient() {
-	http.HandleFunc("/register", ts.register)
+func (ts *Server) StartTestClient() {
+	http.HandleFunc("/register", ts.Register)
 	http.HandleFunc("/chat", ts.chat)
 
-	err := http.ListenAndServe(":7070", nil)
+	err := ts.server.ListenAndServe()
 	if err != nil {
-		panic(err)
+		log.Println("server closed")
 	}
 }
 
-func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
+func (ts *Server) Register(w http.ResponseWriter, req *http.Request) {
 	var confirmation structs.Confirmation
 
 	err := json.NewDecoder(req.Body).Decode(&confirmation)
@@ -68,7 +69,7 @@ func (ts *TestServer) register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
+func (ts *Server) chat(w http.ResponseWriter, req *http.Request) {
 	var msg twitch.PrivateMessage
 
 	err := json.NewDecoder(req.Body).Decode(&msg)
@@ -76,13 +77,19 @@ func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	log.Println(msg.Channel, msg.Message)
+	assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
+	log.Println("received message, attempting graceful shutdown")
+
+	// shutdown main server
+	ts.ShutdownMainServer()
+
+	// shutdown test server
+	ts.StopChan <- 0
 }
 
-func (ts *TestServer) registerWebhook() {
-	config := config.GetConfig("test_config.yml")
+func (ts *Server) RegisterWebhook() {
 	webhook := structs.Webhook{
-		Channels:    []string{"gtawiseguy"},
+		Channels:    []string{"tmiloadtesting2"},
 		URI:         "http://localhost:7070/chat",
 		RegisterURI: "http://localhost:7070/register",
 		Nonce:       "penis123",
@@ -104,7 +111,7 @@ func (ts *TestServer) registerWebhook() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	address := "http://localhost:" + config.Server.Port + "/register"
+	address := "http://localhost:" + ts.config.Server.Port + "/register"
 
 	req, err := http.NewRequestWithContext(ctx, "POST", address, bytes.NewBuffer(webhookJSON))
 	if err != nil {
@@ -119,4 +126,25 @@ func (ts *TestServer) registerWebhook() {
 	defer resp.Body.Close()
 
 	assert.Equal(ts.t, http.StatusOK, resp.StatusCode)
+}
+
+func (ts *Server) ShutdownMainServer() {
+	client := &http.Client{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	address := "http://localhost:" + ts.config.Server.Port + "/shutdown"
+
+	req, err := http.NewRequestWithContext(ctx, "POST", address, nil)
+	if err != nil {
+		log.Println(err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+
+	defer resp.Body.Close()
 }
