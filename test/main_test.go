@@ -31,7 +31,6 @@ func RunMainApplication() {
 }
 
 func TestRegister(t *testing.T) {
-	t.Parallel()
 	RunMainApplication()
 
 	testServer := NewTestServer(t)
@@ -39,8 +38,5 @@ func TestRegister(t *testing.T) {
 	go testServer.StartTestClient()
 
 	testServer.RegisterWebhook()
-
-	for {
-		select {}
-	}
+	<-testServer.StopChan
 }

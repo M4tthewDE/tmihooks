@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
 	"testing"
 	"time"
 
@@ -19,19 +17,22 @@ import (
 
 type TestServer struct {
 	t        *testing.T
+	config   *config.Config
 	server   *http.Server
 	webhook  *structs.Webhook
-	stopChan chan os.Signal
+	StopChan chan int
 }
 
 func NewTestServer(t *testing.T) *TestServer {
+	config := config.GetConfig("../test_config.yml")
+
 	ts := TestServer{
 		t:        t,
+		config:   config,
 		webhook:  nil,
 		server:   &http.Server{Addr: ":7070"},
-		stopChan: make(chan os.Signal, 1),
+		StopChan: make(chan int, 1),
 	}
-	signal.Notify(ts.stopChan, os.Interrupt)
 
 	return &ts
 }
@@ -40,20 +41,9 @@ func (ts *TestServer) StartTestClient() {
 	http.HandleFunc("/register", ts.Register)
 	http.HandleFunc("/chat", ts.chat)
 
-	go func() {
-		err := ts.server.ListenAndServe()
-		if err != nil {
-			log.Println("server closed")
-		}
-	}()
-
-	<-ts.stopChan
-	log.Println("stopping server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := ts.server.Shutdown(ctx); err != nil {
-		panic(err)
+	err := ts.server.ListenAndServe()
+	if err != nil {
+		log.Println("server closed")
 	}
 }
 
@@ -90,16 +80,14 @@ func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
 	assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
 	log.Println("received message, attempting graceful shutdown")
 
-	p, err := os.FindProcess(os.Getpid())
-	if err != nil {
-		panic(err)
-	}
+	// shutdown main server
+	ts.ShutdownMainServer()
 
-	p.Signal(os.Interrupt)
+	// shutdown test server
+	ts.StopChan <- 0
 }
 
 func (ts *TestServer) RegisterWebhook() {
-	config := config.GetConfig("../test_config.yml")
 	webhook := structs.Webhook{
 		Channels:    []string{"tmiloadtesting2"},
 		URI:         "http://localhost:7070/chat",
@@ -123,7 +111,7 @@ func (ts *TestServer) RegisterWebhook() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	address := "http://localhost:" + config.Server.Port + "/register"
+	address := "http://localhost:" + ts.config.Server.Port + "/register"
 
 	req, err := http.NewRequestWithContext(ctx, "POST", address, bytes.NewBuffer(webhookJSON))
 	if err != nil {
@@ -138,4 +126,25 @@ func (ts *TestServer) RegisterWebhook() {
 	defer resp.Body.Close()
 
 	assert.Equal(ts.t, http.StatusOK, resp.StatusCode)
+}
+
+func (ts *TestServer) ShutdownMainServer() {
+	client := &http.Client{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	address := "http://localhost:" + ts.config.Server.Port + "/shutdown"
+
+	req, err := http.NewRequestWithContext(ctx, "POST", address, nil)
+	if err != nil {
+		log.Println(err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+
+	defer resp.Body.Close()
 }

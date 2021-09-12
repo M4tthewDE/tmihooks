@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/m4tthewde/tmihooks/internal/config"
@@ -172,6 +173,20 @@ func (rh *RouteHandler) ConfirmWebhook(confirmation *structs.Confirmation, webho
 			for _, channel := range webhook.Channels {
 				rh.reader.ChanChan <- channel
 			}
+		}
+	}
+}
+
+func (rh *RouteHandler) Shutdown() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		p, err := os.FindProcess(os.Getpid())
+		if err != nil {
+			panic(err)
+		}
+
+		err = p.Signal(os.Interrupt)
+		if err != nil {
+			panic(err)
 		}
 	}
 }
