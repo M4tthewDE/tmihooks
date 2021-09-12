@@ -11,13 +11,10 @@ import (
 	"github.com/gempir/go-twitch-irc/v2"
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/db"
-	"github.com/m4tthewde/tmihooks/internal/structs"
 )
 
 type MessageHandler struct {
-	dbHandler   *db.DatabaseHandler
-	webhooks    []structs.Webhook
-	WebhookChan chan structs.Webhook
+	dbHandler *db.DatabaseHandler
 }
 
 func NewMessageHandler(config *config.Config) *MessageHandler {
@@ -25,8 +22,6 @@ func NewMessageHandler(config *config.Config) *MessageHandler {
 		dbHandler: &db.DatabaseHandler{
 			Config: config,
 		},
-		webhooks:    make([]structs.Webhook, 0, 10),
-		WebhookChan: make(chan structs.Webhook),
 	}
 
 	return &mh
@@ -35,16 +30,13 @@ func NewMessageHandler(config *config.Config) *MessageHandler {
 func (mh *MessageHandler) handlePrivMsg(msg twitch.PrivateMessage) {
 	// check in slice for webhooks with channel
 	// if that is too slow too, a map could be used for better performance
-	webhooks := mh.GetWebhooksWithChannel(msg.Channel)
-
-	for _, webhook := range webhooks {
-		mh.sendToEndpoint(msg, webhook.URI)
+	uris, err := db.GetURIs(msg.Channel)
+	if err != nil {
+		panic(err)
 	}
-}
 
-func (mh *MessageHandler) WebhookListener() {
-	for webhook := range mh.WebhookChan {
-		mh.webhooks = append(mh.webhooks, webhook)
+	for _, uri := range uris {
+		mh.sendToEndpoint(msg, uri)
 	}
 }
 
@@ -81,17 +73,4 @@ func (mh *MessageHandler) sendToEndpoint(msg twitch.PrivateMessage, uri string) 
 		// TODO their problem I guess
 		log.Println(resp.StatusCode)
 	}
-}
-
-func (mh *MessageHandler) GetWebhooksWithChannel(channel string) []structs.Webhook {
-	result := make([]structs.Webhook, 0)
-
-	for _, webhook := range mh.webhooks {
-		for _, c := range webhook.Channels {
-			if c == channel {
-				result = append(result, webhook)
-			}
-		}
-	}
-	return result
 }

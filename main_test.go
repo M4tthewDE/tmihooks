@@ -82,7 +82,7 @@ func (ts *TestServer) chat(w http.ResponseWriter, req *http.Request) {
 func (ts *TestServer) registerWebhook() {
 	config := config.GetConfig("test_config.yml")
 	webhook := structs.Webhook{
-		Channels:    []string{"tmiloadtesting2", "twitchmedia_qs_10", "nmplol", "gtawiseguy", "quin69"},
+		Channels:    []string{"gtawiseguy"},
 		URI:         "http://localhost:7070/chat",
 		RegisterURI: "http://localhost:7070/register",
 		Nonce:       "penis123",
