@@ -71,9 +71,7 @@ func (ts *Server) Register(w http.ResponseWriter, req *http.Request) {
 
 	log.Println(string(s))
 
-	if ts.testType == REGISTER {
-		assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
-	}
+	assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
 
 	_, err = w.Write([]byte(confirmation.Challenge))
 	if err != nil {
@@ -89,8 +87,9 @@ func (ts *Server) chat(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
+	assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
+
 	if ts.testType == REGISTER {
-		assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
 		log.Println("received message, attempting graceful shutdown")
 
 		// shutdown main server
