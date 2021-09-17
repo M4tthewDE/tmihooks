@@ -9,7 +9,7 @@ import (
 func TestRun(t *testing.T) {
 	t.Parallel()
 
-	testServer := test.NewTestServer(t)
+	testServer := test.NewTestServer(t, test.INFINITE)
 
 	go testServer.StartTestClient()
 
