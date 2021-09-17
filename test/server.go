@@ -15,15 +15,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type Type int
+
+const (
+	REGISTER Type = iota
+	DELETE   Type = iota
+	INFINITE Type = iota
+)
+
 type Server struct {
 	t        *testing.T
 	config   *config.Config
 	server   *http.Server
 	webhook  *structs.Webhook
 	StopChan chan int
+	testType Type
 }
 
-func NewTestServer(t *testing.T) *Server {
+func NewTestServer(t *testing.T, testType Type) *Server {
 	config := config.GetConfig("../test_config.yml")
 
 	ts := Server{
@@ -32,6 +41,7 @@ func NewTestServer(t *testing.T) *Server {
 		webhook:  nil,
 		server:   &http.Server{Addr: ":7070"},
 		StopChan: make(chan int, 1),
+		testType: testType,
 	}
 
 	return &ts
@@ -61,7 +71,9 @@ func (ts *Server) Register(w http.ResponseWriter, req *http.Request) {
 
 	log.Println(string(s))
 
-	assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
+	if ts.testType == REGISTER {
+		assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
+	}
 
 	_, err = w.Write([]byte(confirmation.Challenge))
 	if err != nil {
@@ -77,14 +89,16 @@ func (ts *Server) chat(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
-	log.Println("received message, attempting graceful shutdown")
+	if ts.testType == REGISTER {
+		assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
+		log.Println("received message, attempting graceful shutdown")
 
-	// shutdown main server
-	ts.ShutdownMainServer()
+		// shutdown main server
+		ts.ShutdownMainServer()
 
-	// shutdown test server
-	ts.StopChan <- 0
+		// shutdown test server
+		ts.StopChan <- 0
+	}
 }
 
 func (ts *Server) RegisterWebhook() {

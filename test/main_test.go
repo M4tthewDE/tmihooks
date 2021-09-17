@@ -36,7 +36,7 @@ func RunMainApplication() {
 func TestRegister(t *testing.T) {
 	RunMainApplication()
 
-	testServer := NewTestServer(t)
+	testServer := NewTestServer(t, REGISTER)
 
 	go testServer.StartTestClient()
 
