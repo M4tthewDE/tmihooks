@@ -10,16 +10,14 @@ import (
 )
 
 func RunMainApplication() {
-	// run main
-	// clear redis
-	db.Clear()
-
 	config := config.GetConfig("../config.yml")
 
 	dbHandler := db.DatabaseHandler{
 		Config: config,
 	}
 
+	// clear mongodb and redis
+	db.Clear()
 	err := dbHandler.Clear()
 	if err != nil {
 		panic(err)
