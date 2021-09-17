@@ -6,10 +6,14 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"testing"
 	"time"
 
 	"github.com/gempir/go-twitch-irc/v2"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/m4tthewde/tmihooks/internal/config"
 	"github.com/m4tthewde/tmihooks/internal/structs"
 	"github.com/stretchr/testify/assert"
@@ -24,79 +28,116 @@ const (
 )
 
 type Server struct {
-	t        *testing.T
-	config   *config.Config
-	server   *http.Server
-	webhook  *structs.Webhook
-	StopChan chan int
-	testType Type
+	t             *testing.T
+	config        *config.Config
+	server        *http.Server
+	router        *chi.Mux
+	webhook       *structs.Webhook
+	StopChan      chan int
+	interruptChan chan os.Signal
+	testType      Type
 }
 
 func NewTestServer(t *testing.T, testType Type) *Server {
 	config := config.GetConfig("../test_config.yml")
 
 	ts := Server{
-		t:        t,
-		config:   config,
-		webhook:  nil,
-		server:   &http.Server{Addr: ":7070"},
-		StopChan: make(chan int, 1),
-		testType: testType,
+		t:             t,
+		config:        config,
+		webhook:       nil,
+		server:        &http.Server{Addr: ":7070"},
+		router:        chi.NewRouter(),
+		StopChan:      make(chan int, 1),
+		interruptChan: make(chan os.Signal, 1),
+		testType:      testType,
 	}
+	signal.Notify(ts.interruptChan, os.Interrupt)
 
 	return &ts
 }
 
 func (ts *Server) StartTestClient() {
-	http.HandleFunc("/register", ts.Register)
-	http.HandleFunc("/chat", ts.chat)
+	ts.router.Use(middleware.Logger)
+	ts.router.Post("/register", ts.Register())
+	ts.router.Post("/chat", ts.chat())
 
-	err := ts.server.ListenAndServe()
-	if err != nil {
-		log.Println("server closed")
+	ts.server.Handler = ts.router
+
+	go func() {
+		err := ts.server.ListenAndServe()
+		if err != nil {
+			log.Println("server closed")
+		}
+	}()
+
+	<-ts.interruptChan
+	log.Println("stopping main server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := ts.server.Shutdown(ctx); err != nil {
+		panic(err)
+	}
+	log.Println("done")
+	defer cancel()
+	if err := ts.server.Shutdown(ctx); err != nil {
+		panic(err)
+	}
+	log.Println("done")
+}
+
+func (ts *Server) Register() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var confirmation structs.Confirmation
+
+		err := json.NewDecoder(r.Body).Decode(&confirmation)
+		if err != nil {
+			panic(err)
+		}
+
+		log.Println("received confirmation")
+
+		s, _ := json.MarshalIndent(confirmation, "", " ")
+
+		log.Println(string(s))
+
+		assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
+
+		_, err = w.Write([]byte(confirmation.Challenge))
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-func (ts *Server) Register(w http.ResponseWriter, req *http.Request) {
-	var confirmation structs.Confirmation
+func (ts *Server) chat() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var msg twitch.PrivateMessage
 
-	err := json.NewDecoder(req.Body).Decode(&confirmation)
-	if err != nil {
-		panic(err)
-	}
+		err := json.NewDecoder(r.Body).Decode(&msg)
+		if err != nil {
+			panic(err)
+		}
 
-	log.Println("received confirmation")
+		assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
 
-	s, _ := json.MarshalIndent(confirmation, "", " ")
+		if ts.testType == REGISTER {
+			log.Println("received message, attempting graceful shutdown")
 
-	log.Println(string(s))
+			// shutdown main server
+			ts.ShutdownMainServer()
 
-	assert.Equal(ts.t, ts.webhook.Nonce, confirmation.Nonce)
+			// shutdown test server
+			p, err := os.FindProcess(os.Getpid())
+			if err != nil {
+				panic(err)
+			}
 
-	_, err = w.Write([]byte(confirmation.Challenge))
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (ts *Server) chat(w http.ResponseWriter, req *http.Request) {
-	var msg twitch.PrivateMessage
-
-	err := json.NewDecoder(req.Body).Decode(&msg)
-	if err != nil {
-		panic(err)
-	}
-
-	assert.Equal(ts.t, "tmiloadtesting2", msg.Channel)
-
-	if ts.testType == REGISTER {
-		log.Println("received message, attempting graceful shutdown")
-
-		// shutdown main server
-		ts.ShutdownMainServer()
-
-		// shutdown test server
-		ts.StopChan <- 0
+			err = p.Signal(os.Interrupt)
+			if err != nil {
+				panic(err)
+			}
+			ts.StopChan <- 0
+		}
 	}
 }
 
